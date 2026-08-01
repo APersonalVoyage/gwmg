@@ -23,13 +23,28 @@ version.
 
 ## Install
 
-The Python package installs with pip:
+gwmg has two parts: the Python package (the likelihood, CLI and plotting, which
+install with pip) and the heavier CosmoSIS 3 + hi_class stack it drives (which
+is installed separately, because it is not pip-installable).
 
+Install the package straight from GitHub:
+
+    pip install git+https://github.com/APersonalVoyage/gwmg.git
+
+Or clone it first, which also gives you the configs, data and tests locally and
+lets you modify the code:
+
+    git clone https://github.com/APersonalVoyage/gwmg.git
+    cd gwmg
     pip install -e .[dev]
+
+Check the core works (this needs no CosmoSIS):
+
     gwmg validate
 
-CosmoSIS 3 and hi_class are installed separately (they are not pip-installable).
-See `docs/install.md`.
+That gives you the GW likelihood, the `gwmg` command line and plotting. To run
+the full pipeline you also need CosmoSIS 3 and hi_class; see `docs/install.md`
+for those.
 
 ## Usage
 

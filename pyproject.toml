@@ -33,7 +33,7 @@ dev = ["pytest", "chainconsumer>=1.0", "pandas", "matplotlib"]
 gwmg = "gwmg.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abhishek/gwmg"
+Homepage = "https://github.com/APersonalVoyage/gwmg"
 
 [tool.setuptools.packages.find]
 where = ["src"]
