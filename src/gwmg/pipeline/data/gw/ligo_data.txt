@@ -1,0 +1,10 @@
+# GW standard-siren data for the dgw likelihood.
+# Columns:  d_gw_obs[Mpc]   z_obs   sigma_dgw[Mpc]   sigma_z   v_rms[km/s]
+# IMPORTANT: distances are in Mpc (model d_L from hi_class is in Mpc).
+#
+# GW170817: EM counterpart in NGC 4993; d_L ~ 40 Mpc.
+# GW190521: EM counterpart ZTF19abanrhr at z=0.438 (the *independent* EM
+#           redshift used for the modified-gravity test). LVK GW luminosity
+#           distance 5.3 (+2.4/-2.6) Gpc -> d=5300 Mpc, sigma_dgw~2500 Mpc.
+40.0     0.0099   11      0.0001   500
+5300     0.438    2500    0.0001   500

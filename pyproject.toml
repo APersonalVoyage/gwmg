@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gwmg"
+version = "0.1.0"
+description = "Modified-gravity constraints from gravitational-wave standard sirens + large-scale structure, via hi_class + CosmoSIS."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Abhishek Karkola" }]
+keywords = ["cosmology", "gravitational-waves", "modified-gravity", "horndeski", "hi_class", "cosmosis", "standard-sirens"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "License :: OSI Approved :: MIT License",
+]
+# Core deps for the importable API + plotting + CLI. The heavy stack (cosmosis,
+# hi_class/classy) is NOT pip-installable and is documented separately in the
+# install guide -- gwmg wraps it rather than bundling it.
+dependencies = [
+    "numpy",
+    "scipy",
+]
+
+[project.optional-dependencies]
+plot = ["chainconsumer>=1.0", "pandas", "matplotlib"]
+test = ["pytest"]
+dev = ["pytest", "chainconsumer>=1.0", "pandas", "matplotlib"]
+
+[project.scripts]
+gwmg = "gwmg.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/abhishek/gwmg"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+gwmg = [
+    "pipeline/configs/*.ini",
+    "pipeline/data/gw/*.txt",
+    "pipeline/modules/*.py",
+]

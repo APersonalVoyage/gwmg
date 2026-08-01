@@ -1,0 +1,21 @@
+# build / packaging
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# environments
+.venv/
+venv/
+
+# run outputs and training data
+output/
+training_set/
+test_set/
+*.log
+
+# emulator not published yet
+src/gwmg/emulator/
+tests/test_emulator.py
