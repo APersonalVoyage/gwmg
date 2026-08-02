@@ -1,5 +1,7 @@
 # gwmg
 
+[![CI](https://github.com/APersonalVoyage/gwmg/actions/workflows/ci.yml/badge.svg)](https://github.com/APersonalVoyage/gwmg/actions/workflows/ci.yml)
+
 A Python 3 / CosmoSIS 3 pipeline for constraining modified gravity with
 gravitational-wave standard sirens and large-scale-structure data.
 
