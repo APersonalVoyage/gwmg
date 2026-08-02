@@ -128,8 +128,10 @@ def _register_emulator(sub):
 
     def cmd_emu_train(args):
         from .emulator import train_emulators
+        from .emulator.train import _TRAIN_KW_FAST
         try:
-            train_emulators(args.training_dir, args.model_dir)
+            train_emulators(args.training_dir, args.model_dir,
+                            train_kw=_TRAIN_KW_FAST if args.fast else None)
         except ImportError:
             sys.exit("cosmopower not installed. Run: pip install cosmopower")
         return 0
@@ -163,6 +165,7 @@ def _register_emulator(sub):
     et = sub.add_parser("emu-train", help="train CosmoPower emulators on a training set")
     et.add_argument("training_dir", help="directory from `gwmg emu-gen`")
     et.add_argument("--model-dir", required=True, help="where to save trained emulators")
+    et.add_argument("--fast", action="store_true", help="quick 3-stage schedule (first pass)")
     et.set_defaults(fn=cmd_emu_train)
 
     ev = sub.add_parser("emu-validate", help="check emulator accuracy vs exact hi_class")
