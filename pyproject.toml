@@ -28,6 +28,9 @@ dependencies = [
 plot = ["chainconsumer>=1.0", "pandas", "matplotlib"]
 test = ["pytest"]
 dev = ["pytest", "chainconsumer>=1.0", "pandas", "matplotlib"]
+# The emulator pulls in TensorFlow via CosmoPower; its stack conflicts with
+# classy's, so install it in a separate environment from hi_class.
+emulator = ["cosmopower"]
 
 [project.scripts]
 gwmg = "gwmg.cli:main"

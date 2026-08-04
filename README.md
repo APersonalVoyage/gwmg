@@ -22,6 +22,9 @@ version.
   GW170817 + GW190521 data
 - a `gwmg` command line: `info`, `run`, `plot`, `validate`
 - corner/contour plotting with ChainConsumer
+- a CosmoPower neural-network emulator of the expensive physics, with a full
+  validation chain (`emu-gen`, `emu-train`, `emu-validate`, `emu-chi2`,
+  `emu-bias`); see `docs/emulator.md`
 
 ## Install
 
@@ -62,11 +65,28 @@ distance (their eq. 2.12), the alpha_i proportional-to-Omega_Lambda ansatz
 (eq. 2.14), and the lensing and peculiar-velocity error model (eqs. 3.9-3.11).
 See `docs/validation.md`.
 
+## Emulator
+
+Running the exact pipeline is slow because every step solves the full
+cosmological equations. gwmg includes a CosmoPower neural-network emulator
+(arXiv:2106.03846) that learns the expensive physics so the same analysis runs
+in minutes. A self-consistent CMB emulator trained on hi_class biases the Planck
+parameters by at most 0.19 sigma, beating an off-the-shelf pre-trained emulator
+(0.53 sigma) by removing the code mismatch between the two. The emulator code and
+the validation methodology (why per-multipole metrics mislead, and the
+Fisher-matrix parameter-bias test that replaces them) are documented in
+`docs/emulator.md`.
+
+The emulator depends on CosmoPower and TensorFlow, whose stack conflicts with
+classy's, so it runs in its own environment; install its extras with
+`pip install -e .[emulator]`.
+
 ## Status
 
 Work in progress. The pipeline runs and reproduces the physics of the source
-paper. A machine-learning emulator to speed up the analysis is in development
-and not yet part of this repository.
+paper, and the emulator is validated as a component. The next step is the
+end-to-end demonstration: the full accelerated inference reproducing the exact
+constraints. See the roadmap in `docs/emulator.md`.
 
 ## License
 

@@ -10,12 +10,12 @@ __pycache__/
 .venv/
 venv/
 
-# run outputs and training data
+# run outputs, training data, and trained models (not versioned; regenerate)
 output/
-training_set/
-test_set/
+training_set*/
+test_set*/
+emulators*/
+pretrained/
 *.log
-
-# emulator not published yet
-src/gwmg/emulator/
-tests/test_emulator.py
+*.npz
+*.npy

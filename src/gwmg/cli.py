@@ -111,7 +111,10 @@ def _register_emulator(sub):
 
     def cmd_emu_gen(args):
         from .emulator import generate_training_set, generate_parallel
+        from .emulator.generate import SMART_RANGES
         kw = dict(lmax=args.lmax, kmax=args.kmax, zmax=args.zmax, nk=args.nk)
+        if args.smart_box:
+            kw["ranges"] = SMART_RANGES
         if args.workers > 1:
             n_ok, n_fail = generate_parallel(args.n, args.outdir, workers=args.workers,
                                              seed=args.seed, **kw)
@@ -146,6 +149,40 @@ def _register_emulator(sub):
             print("[gwmg] wrote", write_report(report, args.report))
         return 0
 
+    def cmd_emu_chi2(args):
+        from .emulator.chi2 import chi2_validation, write_chi2_report
+        try:
+            report = chi2_validation(args.model_dir, args.test_dir,
+                                     planck_data_dir=args.planck_data_dir,
+                                     year=args.year, best_frac=args.best_frac)
+        except ImportError:
+            sys.exit("cosmopower not installed. Run: pip install cosmopower")
+        if args.report:
+            print("[gwmg] wrote", write_chi2_report(report, args.report))
+        return 0
+
+    def cmd_emu_bias(args):
+        import numpy as np
+        from .emulator.chi2 import PlanckLiteTT, parameter_bias
+        try:
+            from cosmopower import cosmopower_NN
+        except ImportError:
+            sys.exit("cosmopower not installed. Run: pip install cosmopower")
+        deriv = np.load(args.deriv, allow_pickle=True)
+        keys = [str(k) for k in deriv["keys"]]
+        fid = deriv["fid_params"]
+        cp = cosmopower_NN(restore=True,
+                           restore_filename=os.path.join(args.model_dir, "emu_cl_tt"))
+        emu_cl = (10.0 ** cp.predictions_np(
+            {k: [float(fid[i])] for i, k in enumerate(keys)}))[0]
+        lite = PlanckLiteTT(year=args.year, use_low_ell=True)
+        rep = parameter_bias(lite, deriv, emu_cl, cp.modes.astype(float))
+        print("emulator Fisher bias  (delta^T F delta = %.3f):" % rep["dchi2_fixed"])
+        for k, b in zip(rep["keys"], rep["bias_over_sigma"]):
+            print("  %-10s  bias/sigma = %+.3f" % (k, b))
+        print("  max |bias/sigma| = %.3f" % rep["max_abs_bias_over_sigma"])
+        return 0
+
     eg = sub.add_parser("emu-gen", help="generate a hi_class training set (CosmoPower format)")
     eg.add_argument("-n", type=int, required=True, help="number of parameter samples")
     eg.add_argument("--outdir", required=True, help="output directory for the training set")
@@ -155,6 +192,8 @@ def _register_emulator(sub):
     eg.add_argument("--nk", type=int, default=200)
     eg.add_argument("--seed", type=int, default=0, help="base LHS seed")
     eg.add_argument("--workers", type=int, default=1, help="parallel hi_class processes")
+    eg.add_argument("--smart-box", action="store_true",
+                    help="tight ranges on standard params, full range on alpha_M/alpha_B")
     eg.set_defaults(fn=cmd_emu_gen)
 
     em = sub.add_parser("emu-merge", help="merge parallel training-set directories")
@@ -173,6 +212,26 @@ def _register_emulator(sub):
     ev.add_argument("--model-dir", required=True, help="trained emulators dir")
     ev.add_argument("--report", help="write a text accuracy report to this path")
     ev.set_defaults(fn=cmd_emu_validate)
+
+    ec = sub.add_parser("emu-chi2",
+                        help="likelihood-level check: Planck TT chi2 from emulated vs exact C_ell")
+    ec.add_argument("test_dir", help="held-out test set (emu-gen with a fresh --seed)")
+    ec.add_argument("--model-dir", required=True, help="trained emulators dir")
+    ec.add_argument("--report", help="write a text Dchi2 report to this path")
+    ec.add_argument("--planck-data-dir", default=None,
+                    help="Plik-lite data dir (default: $COSMOSIS_SRC_DIR/.../planck_py/data)")
+    ec.add_argument("--year", type=int, default=2015, choices=(2015, 2018))
+    ec.add_argument("--best-frac", type=float, default=0.1,
+                    help="fraction of lowest-chi2 samples to report separately")
+    ec.set_defaults(fn=cmd_emu_chi2)
+
+    eb = sub.add_parser("emu-bias",
+                        help="emulator-induced parameter bias, in Planck-TT sigma (Fisher formalism)")
+    eb.add_argument("--deriv", required=True,
+                    help="derivative spectra npz from scripts/fisher_deriv_tt.py")
+    eb.add_argument("--model-dir", required=True, help="trained emulators dir")
+    eb.add_argument("--year", type=int, default=2015, choices=(2015, 2018))
+    eb.set_defaults(fn=cmd_emu_bias)
 
 
 def main(argv=None):
