@@ -9,10 +9,10 @@ tags:
   - Bayesian inference
 authors:
   - name: Abhishek Karkola
-    orcid: 0009-0001-8035-0195 
+    orcid: 0009-0001-8035-0195
     affiliation: 1
 affiliations:
-  - name: Independent researcher  
+  - name: Independent researcher
     index: 1
 date: 6 August 2026 
 bibliography: paper.bib
