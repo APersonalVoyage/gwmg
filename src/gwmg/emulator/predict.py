@@ -28,6 +28,10 @@ try:
 except ImportError:
     from scipy.integrate import cumtrapz as _cumtrapz
 
+# np.trapz was removed in NumPy 2.0 in favour of np.trapezoid. The emulator env
+# is pinned to numpy<1.25 by TensorFlow while CI runs numpy 2.x, so support both.
+_trapz = getattr(np, "trapezoid", None) or np.trapz
+
 PARAMS8 = ["omega_m", "h0", "omega_b", "n_s", "A_s", "tau", "alpha_B0", "alpha_M0"]
 # Training box; must match the generation scripts.
 BOX = {"omega_m": (0.24, 0.36), "h0": (0.61, 0.76), "omega_b": (0.041, 0.054),
@@ -52,7 +56,7 @@ def _sigma8_from_pk(k_h, pk):
     """sigma_8 from P(k) [(Mpc/h)^3] on k_h [h/Mpc], top-hat R = 8 Mpc/h."""
     x = k_h * 8.0
     w = 3.0 * (np.sin(x) - x * np.cos(x)) / x ** 3
-    return np.sqrt(np.trapz(pk * w ** 2 * k_h ** 2, k_h) / (2.0 * np.pi ** 2))
+    return np.sqrt(_trapz(pk * w ** 2 * k_h ** 2, k_h) / (2.0 * np.pi ** 2))
 
 
 class Emulator(object):

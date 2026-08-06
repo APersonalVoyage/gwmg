@@ -23,6 +23,10 @@ try:
 except ImportError:
     from scipy.integrate import cumtrapz as _cumtrapz
 
+# np.trapz was removed in NumPy 2.0; the emulator env is pinned to numpy<1.25 by
+# TensorFlow, so support both spellings.
+_trapz = getattr(np, "trapezoid", None) or np.trapz
+
 cosmo = names.cosmological_parameters
 distances = names.distances
 cmb_cl = names.cmb_cl
@@ -92,7 +96,7 @@ def _sigma8(kh, pk):
     x = kh * 8.0
     w = 3.0 * (np.sin(x) - x * np.cos(x)) / x ** 3
     integ = pk * w ** 2 * kh ** 2
-    return np.sqrt(np.trapz(integ, kh) / (2.0 * np.pi ** 2))
+    return np.sqrt(_trapz(integ, kh) / (2.0 * np.pi ** 2))
 
 
 def _rs_drag(ombh2, omch2):
