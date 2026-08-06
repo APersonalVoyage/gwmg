@@ -70,14 +70,15 @@ validate emulators against it.
 `gwmg` exposes a command-line interface (`info`, `run`, `plot`, `validate`) for
 the exact pipeline, and an emulator workflow (`emu-gen`, `emu-train`,
 `emu-validate`, `emu-chi2`, `emu-bias`) covering training-set generation,
-training, and three levels of validation. Trained emulators act as a drop-in
-replacement for `hi_class` within CosmoSIS, so the exact and accelerated
-pipelines share the same configuration and likelihoods and are directly
-comparable. A Python API returns the observables directly:
+training, and three levels of validation. Trained emulators are distributed with
+the package, so no training is required to use them, and they act as a drop-in
+replacement for `hi_class` within CosmoSIS: the exact and accelerated pipelines
+share the same configuration and likelihoods and are directly comparable. A
+Python API returns the observables directly:
 
 ```python
 from gwmg.emulator import Emulator
-emu = Emulator("emulators")
+emu = Emulator()          # trained models ship with the package
 out = emu.predict(omega_m=0.315, h0=0.674, omega_b=0.049, n_s=0.965,
                   A_s=2.1e-9, tau=0.054, alpha_B0=1.0, alpha_M0=0.5)
 out.cl_tt, out.pk, out.sigma8, out.fsigma8, out.dgw_ratio
