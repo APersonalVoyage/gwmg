@@ -22,9 +22,11 @@ version.
   GW170817 + GW190521 data
 - a `gwmg` command line: `info`, `run`, `plot`, `validate`
 - corner/contour plotting with ChainConsumer
-- a CosmoPower neural-network emulator of the expensive physics, with a full
-  validation chain (`emu-gen`, `emu-train`, `emu-validate`, `emu-chi2`,
-  `emu-bias`); see `docs/emulator.md`
+- CosmoPower neural-network emulators of the CMB, matter power and growth, an
+  `Emulator` Python API, a drop-in CosmoSIS module that replaces hi_class, and a
+  three-level validation suite (`emu-gen`, `emu-train`, `emu-validate`,
+  `emu-chi2`, `emu-bias`) — see the [Emulator](#emulator) section below and
+  `docs/emulator.md`
 
 ## Install
 
@@ -89,13 +91,80 @@ likelihood curvature that constrains alpha. The full methodology, including why
 per-multipole accuracy metrics mislead, is in `docs/emulator.md` and
 `docs/analysis_and_results.md`.
 
-To run the accelerated chain:
+### What is emulated
+
+| Quantity | Inputs | Accuracy |
+|---|---|---|
+| CMB TT C_ell (2 <= l <= 2600) | 8 params, **including alpha_M0, alpha_B0** | 0.17% median |
+| Linear P(k), sigma_8 | 8 params | 0.1% median |
+| Growth f-sigma_8(z), 0 < z < 1.5 | 8 params | 1.2% median |
+| Distances, H(z), sound horizon, GW distance ratio | computed exactly, not emulated | 0.02-0.2% vs hi_class |
+
+The background is analytic for an LCDM expansion, so only the perturbation
+spectra are worth emulating.
+
+### Setup
+
+The emulator needs CosmoPower and TensorFlow, which pin `numpy<1.25` and so
+cannot share an environment with a modern `classy`. Use the provided file:
+
+    conda env create -f environment-emulator.yml
+    conda activate gw-emu
+    export GWMG_EMU=/path/to/where/your/emulators/live
+
+### Using the emulators directly
+
+    from gwmg.emulator import Emulator
+
+    emu = Emulator("emulators")     # dir with emu_cl_tt, emu_logpk, emu_fsigma8
+    out = emu.predict(omega_m=0.315, h0=0.674, omega_b=0.049, n_s=0.965,
+                      A_s=2.1e-9, tau=0.054, alpha_B0=1.0, alpha_M0=0.5)
+
+    out.ell, out.cl_tt, out.dl_tt   # CMB TT
+    out.k_h, out.pk, out.sigma8     # linear P(k) and sigma_8
+    out.z, out.fsigma8              # growth
+    out.z_bg, out.dgw_ratio         # d_L^GW / d_L^EM (the siren observable)
+
+About 7 ms per call, against ~6.4 s for the equivalent hi_class evaluation.
+Parameters outside the training box raise `ValueError`.
+
+### Running the accelerated chain
 
     gwmg run gw_lss_emulated
 
-The emulator depends on CosmoPower and TensorFlow, whose stack conflicts with
-classy's, so it runs in its own environment; install its extras with
-`pip install -e .[emulator]`.
+`configs/gw_lss_emulated.ini` is identical to the exact `gw_lss_emcee.ini` except
+that the hi_class module is swapped for `modules/emulator_interface.py`, so the
+two are directly comparable.
+
+### Training your own
+
+Trained weights are not distributed (they are large and tied to a specific
+hi_class build; an emulator trained on a different Boltzmann code introduces a
+measurable bias). Regenerate them — steps 1 and 4 in the `gw-hiclass`
+environment, 2 and 3 in `gw-emu`:
+
+    # 1. training data (hours on ~6 cores)
+    python scripts/generate_lcdm_tt.py -n 8000 --outdir training_set --seed 1 --workers 6
+    python scripts/generate_growth.py  -n 8000 --outdir training_growth --seed 3 --workers 6
+
+    # 2. train (minutes).  --mg gives the 8-parameter, MG-aware CMB emulator
+    python scripts/train_lcdm_tt.py training_set --model-dir emulators --mg --lr 0.01
+    python scripts/train_growth.py  training_growth --model-dir emulators
+
+    # 3. accuracy per multipole
+    gwmg emu-validate test_set --model-dir emulators --report accuracy.txt
+
+    # 4/5. parameter bias (derivatives in gw-hiclass, analysis in gw-emu)
+    python scripts/fisher_deriv_tt.py --out fisher_deriv.npz
+    gwmg emu-bias --deriv fisher_deriv.npz --model-dir emulators
+
+### Scope
+
+Valid for the `propto_omega` ansatz with an LCDM expansion (w = -1),
+alpha_T = alpha_H = 0, alpha_K fixed, TT only, massless neutrinos, and inside the
+trained box (alpha_B0 in [-1, 3], alpha_M0 in [-1, 6], standard parameters a few
+sigma around Planck). Anything beyond that needs retraining, which the scripts
+above support. Full detail and limitations: `docs/emulator.md`.
 
 ## Status
 

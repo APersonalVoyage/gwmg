@@ -10,14 +10,31 @@ these into the emulator-induced parameter bias in units of the Planck-TT sigma.
 """
 import argparse
 import os
+from functools import lru_cache
 
 import numpy as np
-import classy
+
+try:
+    import classy
+except ImportError:                      # keep --help usable in the emulator env
+    classy = None
 
 LMAX = 2600
 OMNUH2 = 0.00083
-SBBN = os.environ.get("HICLASS_DIR",
-        "/Users/abhishekkarkola/MSc_Thesis/hi_class_public") + "/external/bbn/sBBN.dat"
+@lru_cache(maxsize=1)
+def _sbbn():
+    """Path to hi_class's sBBN table. HICLASS_DIR must point at the hi_class
+    checkout; there is no sensible default, so fail loudly rather than silently
+    using a path that only exists on one machine."""
+    d = os.environ.get("HICLASS_DIR")
+    if not d:
+        raise SystemExit("HICLASS_DIR is not set. Point it at your hi_class "
+                         "checkout, e.g. export HICLASS_DIR=/path/to/hi_class_public")
+    f = os.path.join(d, "external", "bbn", "sBBN.dat")
+    if not os.path.exists(f):
+        raise SystemExit("no sBBN table at %s -- is HICLASS_DIR correct?" % f)
+    return f
+
 
 # Planck 2018 best-fit in the pipeline's parameter convention (Omega_m, Omega_b
 # as fractions). Steps are ~1 sigma, only used for the finite-difference slope.
@@ -29,7 +46,7 @@ KEYS = list(FID)
 def _inputs(p):
     h2 = p["h0"] ** 2
     return {"output": "tCl,pCl,lCl", "lensing": "yes", "modes": "s",
-            "l_max_scalars": LMAX, "T_cmb": 2.726, "N_ur": 3.046, "sBBN file": SBBN,
+            "l_max_scalars": LMAX, "T_cmb": 2.726, "N_ur": 3.046, "sBBN file": _sbbn(),
             "gravity_model": "propto_omega", "expansion_model": "lcdm",
             "parameters_smg": "1.0, 0., 0., 0., 1.",
             "kineticity_safe_smg": 0.0, "expansion_smg": 0.5,
@@ -49,6 +66,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
+    if classy is None:
+        raise SystemExit("classy (hi_class) is not importable. Run this script in "
+                         "the gw-hiclass environment; see docs/install.md.")
     os.environ.setdefault("OMP_NUM_THREADS", "1")   # hi_class is not thread-safe
 
     spec = {"fid": _run(FID)}

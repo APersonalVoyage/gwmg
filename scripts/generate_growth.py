@@ -13,6 +13,7 @@ Same robust design and on-disk layout as generate_lcdm_tt.py. Run in gw-hiclass:
 import argparse
 import glob
 import os
+from functools import lru_cache
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 import numpy as np
@@ -26,8 +27,20 @@ RANGES = {
 OMNUH2 = 0.00083
 ZGRID = np.linspace(0.0, 1.5, 31)          # covers the RSD survey redshifts
 KMAX = 1.0
-SBBN = os.environ.get("HICLASS_DIR",
-        "/Users/abhishekkarkola/MSc_Thesis/hi_class_public") + "/external/bbn/sBBN.dat"
+@lru_cache(maxsize=1)
+def _sbbn():
+    """Path to hi_class's sBBN table. HICLASS_DIR must point at the hi_class
+    checkout; there is no sensible default, so fail loudly rather than silently
+    using a path that only exists on one machine."""
+    d = os.environ.get("HICLASS_DIR")
+    if not d:
+        raise SystemExit("HICLASS_DIR is not set. Point it at your hi_class "
+                         "checkout, e.g. export HICLASS_DIR=/path/to/hi_class_public")
+    f = os.path.join(d, "external", "bbn", "sBBN.dat")
+    if not os.path.exists(f):
+        raise SystemExit("no sBBN table at %s -- is HICLASS_DIR correct?" % f)
+    return f
+
 
 
 def latin_hypercube(ranges, n, seed=0):
@@ -46,7 +59,7 @@ def _inputs(p):
     h2 = p["h0"] ** 2
     return {
         "output": "mPk", "z_max_pk": float(ZGRID[-1] + 0.1), "P_k_max_h/Mpc": KMAX,
-        "T_cmb": 2.726, "N_ur": 3.046, "sBBN file": SBBN,
+        "T_cmb": 2.726, "N_ur": 3.046, "sBBN file": _sbbn(),
         "gravity_model": "propto_omega", "expansion_model": "lcdm",
         "parameters_smg": "1.0, %g, %g, 0., 1." % (p["alpha_B0"], p["alpha_M0"]),
         "kineticity_safe_smg": 0.0, "expansion_smg": 0.5,
