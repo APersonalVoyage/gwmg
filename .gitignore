@@ -15,7 +15,7 @@ output/
 training_set*/
 test_set*/
 emulators*/
-pretrained/
+# NB: pretrained/ IS tracked -- the shipped models (16 MB total) live there.
 *.log
 *.npz
 *.npy

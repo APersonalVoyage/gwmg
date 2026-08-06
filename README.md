@@ -312,18 +312,20 @@ spectra are worth emulating.
 
 ### Setup
 
-The emulator needs no separate environment: `environment.yml` already includes
-CosmoPower, and hi_class is built against the same `numpy<1.25` that TensorFlow
-requires, so `classy`, CosmoPower and CosmoSIS all coexist. Just point gwmg at
-your trained models:
+**Trained models are included** in `pretrained/` (16 MB), so there is nothing to
+train before you can use the emulator. It also needs no separate environment:
+`environment.yml` already includes CosmoPower, and hi_class is built against the
+same `numpy<1.25` that TensorFlow requires, so `classy`, CosmoPower and CosmoSIS
+all coexist.
 
-    export GWMG_EMU=/path/to/where/your/emulators/live
+See `pretrained/README.md` for exactly what those models were trained on, their
+validity box, and how to verify them against your own hi_class build.
 
 ### Using the emulators directly
 
     from gwmg.emulator import Emulator
 
-    emu = Emulator("emulators")     # dir with emu_cl_tt, emu_logpk, emu_fsigma8
+    emu = Emulator()                # uses the shipped models in pretrained/
     out = emu.predict(omega_m=0.315, h0=0.674, omega_b=0.049, n_s=0.965,
                       A_s=2.1e-9, tau=0.054, alpha_B0=1.0, alpha_M0=0.5)
 
@@ -345,10 +347,10 @@ two are directly comparable.
 
 ### Training your own
 
-Trained weights are not distributed (they are large and tied to a specific
-hi_class build; an emulator trained on a different Boltzmann code introduces a
-measurable bias). Three networks go into one model directory — `emu_cl_tt`,
-`emu_logpk`, `emu_fsigma8`:
+You do not need to do this to use the emulator — trained models ship in
+`pretrained/`. Retrain if you change the hi_class build or settings, widen the
+parameter box, or move to a different gravity parametrisation. Three networks go
+into one model directory — `emu_cl_tt`, `emu_logpk`, `emu_fsigma8`:
 
     # 1. training data (hours on ~6 cores). --smart-box keeps the full alpha
     #    priors but restricts the standard parameters to the posterior region.

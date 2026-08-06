@@ -1,10 +1,10 @@
 """Compare the emulator against exact hi_class: accuracy and speed.
 
-Needs trained emulators (see the README section "Training your own") and,
-optionally, hi_class for the head-to-head comparison. Without hi_class it still
-shows the emulator's predictions and timing.
+Uses the emulators shipped in pretrained/ by default, so it runs straight away.
+hi_class is optional: with it you get the head-to-head comparison, without it you
+still see the emulator's predictions and timing.
 
-    python examples/emulator_speed.py --model-dir emulators
+    python examples/emulator_speed.py
 """
 import argparse
 import time
@@ -19,8 +19,9 @@ FIDUCIAL = dict(omega_m=0.315, h0=0.674, omega_b=0.049, n_s=0.965,
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model-dir", default="emulators",
-                    help="directory holding emu_cl_tt, emu_logpk, emu_fsigma8")
+    ap.add_argument("--model-dir", default=None,
+                    help="directory holding emu_cl_tt, emu_logpk, emu_fsigma8 "
+                         "(default: the models shipped in pretrained/)")
     a = ap.parse_args()
 
     emu = Emulator(a.model_dir)

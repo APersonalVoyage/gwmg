@@ -41,6 +41,25 @@ TCMB = 2.726
 C_KMS = 299792.458
 
 
+def default_model_dir():
+    """Where to find emulators when none is given: $GWMG_EMU, else the models
+    shipped in the repository's ``pretrained/`` directory. Returns None if
+    neither holds a complete set."""
+    needed = ("emu_cl_tt.pkl", "emu_logpk.pkl", "emu_fsigma8.pkl")
+    here = os.path.dirname(os.path.abspath(__file__))          # src/gwmg/emulator
+    candidates = []
+    if os.environ.get("GWMG_EMU"):
+        candidates += [os.environ["GWMG_EMU"],
+                       os.path.join(os.environ["GWMG_EMU"], "pretrained")]
+    # repo layout: <repo>/src/gwmg/emulator -> <repo>/pretrained
+    candidates.append(os.path.normpath(os.path.join(here, "..", "..", "..", "pretrained")))
+    candidates.append(os.path.join(os.getcwd(), "pretrained"))
+    for d in candidates:
+        if all(os.path.exists(os.path.join(d, f)) for f in needed):
+            return d
+    return None
+
+
 class Prediction(object):
     """Container for one emulator evaluation (attributes listed in Emulator.predict)."""
 
@@ -68,6 +87,13 @@ class Emulator(object):
 
     def __init__(self, model_dir=None, cmb=None, logpk=None, growth=None):
         from cosmopower import cosmopower_NN
+
+        if model_dir is None and not (cmb or logpk or growth):
+            model_dir = default_model_dir()
+            if model_dir is None:
+                raise ValueError(
+                    "No emulators found. Pass model_dir=..., set GWMG_EMU, or use "
+                    "the models shipped in the package's pretrained/ directory.")
 
         def _p(explicit, name):
             if explicit:

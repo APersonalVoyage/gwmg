@@ -99,9 +99,12 @@ thread-safe. Keep `OMP_NUM_THREADS=1` and parallelise over processes.
 
 ## 5. Trained emulator weights
 
-Trained networks are **not** distributed with the repository: they are large and
-tied to a specific hi_class build, and an emulator trained against a different
-Boltzmann code introduces a measurable bias (see `docs/emulator.md`). Regenerate
-them with the scripts in `scripts/`; the commands are in the README and in
-`docs/emulator.md`. Generating the training sets takes a few hours on six cores,
-and training a few minutes each.
+Trained networks **are** included, in `pretrained/` (16 MB for the three
+models), so the emulator works with no training step. See `pretrained/README.md`
+for what they were trained on, their validity box, and how to verify them against
+your own hi_class build with `gwmg emu-bias`.
+
+Retrain only if you change the hi_class build or its settings, widen the
+parameter box, or move to a different gravity parametrisation; the commands are
+in the README and `docs/emulator.md`. Regenerating the training sets takes a few
+hours on six cores, and training a few minutes each.

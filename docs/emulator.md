@@ -25,7 +25,7 @@ same call, so roughly 900x faster):
 ```python
 from gwmg.emulator import Emulator
 
-emu = Emulator("emulators")            # dir holding emu_cl_tt, emu_logpk, emu_fsigma8
+emu = Emulator()                       # uses the shipped models in pretrained/
 out = emu.predict(omega_m=0.315, h0=0.674, omega_b=0.049, n_s=0.965,
                   A_s=2.1e-9, tau=0.054, alpha_B0=1.0, alpha_M0=0.5)
 
@@ -128,8 +128,11 @@ CosmoPower and CosmoSIS coexist provided hi_class is built against the same
 `numpy<1.25` that TensorFlow requires.
 
 Three networks are needed, all in one model directory: `emu_cl_tt` (CMB),
-`emu_logpk` (matter power) and `emu_fsigma8` (growth). The CMB and matter power
-come from the same 8-parameter training set, the growth from its own.
+`emu_logpk` (matter power) and `emu_fsigma8` (growth). **Trained versions ship in
+`pretrained/`**, so the steps below are only needed if you change the hi_class
+build or settings, widen the box, or change the gravity parametrisation. The CMB
+and matter power come from the same 8-parameter training set, the growth from its
+own.
 
 ```bash
 # 1. training data. --smart-box restricts the standard parameters to the
