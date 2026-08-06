@@ -1,8 +1,11 @@
 # gwmg
 
 [![CI](https://github.com/APersonalVoyage/gwmg/actions/workflows/ci.yml/badge.svg)](https://github.com/APersonalVoyage/gwmg/actions/workflows/ci.yml)
+[![Docs](https://github.com/APersonalVoyage/gwmg/actions/workflows/docs.yml/badge.svg)](https://apersonalvoyage.github.io/gwmg/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/APersonalVoyage/gwmg/blob/main/notebooks/getting_started.ipynb)
 
+**[Documentation](https://apersonalvoyage.github.io/gwmg/)** •
 [Overview](#overview) •
 [Installation](#installation) •
 [Getting Started](#getting-started) •
@@ -144,6 +147,10 @@ gwmg run gw_lss_emulated                     # emulated, ~10 minutes
 gwmg run gw_lss_emcee --mpi 8                # exact, days
 gwmg plot output/gw_lss_emulated.txt --outdir plots
 ```
+
+**A demo notebook** walks through the whole idea — the data, the model, the
+likelihood, and the resulting constraint — and runs in the browser with no
+install: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/APersonalVoyage/gwmg/blob/main/notebooks/getting_started.ipynb)
 
 Two runnable scripts live in [`examples/`](examples):
 `constrain_alpha_M.py` (a complete miniature analysis of the real GW170817 and

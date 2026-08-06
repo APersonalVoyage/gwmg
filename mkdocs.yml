@@ -1,0 +1,53 @@
+site_name: gwmg
+site_description: Testing modified gravity with gravitational-wave standard sirens
+site_url: https://apersonalvoyage.github.io/gwmg/
+repo_url: https://github.com/APersonalVoyage/gwmg
+repo_name: APersonalVoyage/gwmg
+edit_uri: ""
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+
+nav:
+  - Home: index.md
+  - Installation: install.md
+  - Emulator:
+      - Overview and methodology: emulator.md
+      - Analysis and results: analysis_and_results.md
+      - Trained models: pretrained.md
+  - Validation: validation.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+plugins:
+  - search
