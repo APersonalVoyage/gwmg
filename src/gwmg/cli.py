@@ -204,7 +204,7 @@ def _register_emulator(sub):
     et = sub.add_parser("emu-train", help="train CosmoPower emulators on a training set")
     et.add_argument("training_dir", help="directory from `gwmg emu-gen`")
     et.add_argument("--model-dir", required=True, help="where to save trained emulators")
-    et.add_argument("--fast", action="store_true", help="quick 3-stage schedule (first pass)")
+    et.add_argument("--fast", action="store_true", help="quicker, rougher pass (fewer epochs)")
     et.set_defaults(fn=cmd_emu_train)
 
     ev = sub.add_parser("emu-validate", help="check emulator accuracy vs exact hi_class")

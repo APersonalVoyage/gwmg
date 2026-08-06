@@ -28,6 +28,59 @@ version.
   `emu-chi2`, `emu-bias`) — see the [Emulator](#emulator) section below and
   `docs/emulator.md`
 
+## How it works
+
+gwmg is a thin layer over [CosmoSIS](https://cosmosis.readthedocs.io), which runs
+Bayesian inference as a **pipeline of modules**. Three ideas are enough to
+understand everything else here.
+
+**1. A module is a Python file with `setup()` and `execute()`.** Modules run in
+order and communicate through a *datablock*: a typed key-value store, namespaced
+by section. One module writes `distances/d_l`, a later one reads it. Modules do
+not call each other.
+
+**2. One likelihood evaluation looks like this:**
+
+```
+       emcee proposes 8 parameters
+                 │   omega_m, h0, omega_b, n_s, A_s, tau, alpha_B0, alpha_M0
+                 ▼
+        ┌─────────────────┐
+        │ consistency     │  derive ombh2, omch2, ...
+        │ hi_class        │  solve the cosmology  <-- the slow step (seconds)
+        └────────┬────────┘     (or `emulator`, ~7 ms)
+                 │ writes cmb_cl, matter_power_lin, distances, growth_parameters
+                 ▼
+           [ datablock ]
+                 │ read by
+                 ▼
+    planck_py, boss, 6dfgs, wigglez_bao, mgs_bao, dgw
+                 │ each writes likelihoods/*_LIKE
+                 ▼
+        total log-likelihood ──> back to emcee
+```
+
+The theory module is the expensive one and the only one the emulator replaces.
+Everything downstream is unchanged, which is why the exact and emulated runs are
+directly comparable.
+
+**3. A run is defined by two ini files and a data file**, and nothing else:
+
+| File | Controls |
+|---|---|
+| `configs/gw_lss_emcee.ini` | which modules run, which likelihoods count, sampler settings |
+| `configs/values_horndeski.ini` | the parameters: fixed values, or `min start max` to sample |
+| `data/gw/ligo_data.txt` | the gravitational-wave events |
+
+So "changing the analysis" means editing those three, not touching code. That is
+what the next section covers.
+
+**What gwmg itself contributes**, as opposed to CosmoSIS and hi_class: the GW
+standard-siren likelihood (`gwmg.gw_log_likelihood` and the `dgw` module), the
+`hi_class_interface` module that translates between hi_class and the datablock,
+the emulator and its drop-in module, the ready-made configs and data, and the CLI
+that wires the paths together.
+
 ## Install
 
 gwmg has two parts: the Python package (the likelihood, CLI and plotting, which
@@ -103,9 +156,20 @@ same run in about ten minutes.
 
 ## Changing the analysis
 
-Three files control what is run. Copy them out of the package
-(`python -c "import gwmg, os; print(os.path.dirname(gwmg.__file__))"` finds it)
-and pass your own with `gwmg run /path/to/your.ini`.
+The bundled configs live inside the installed package, so copy them somewhere
+writable, edit, and point `gwmg run` at your copy:
+
+```bash
+# copy the bundled pipeline (configs + modules + data) into ./myrun
+python -c "import gwmg, shutil; shutil.copytree(gwmg.pipeline_dir(), 'myrun')"
+
+# edit myrun/configs/*.ini as you like, then run it
+gwmg run myrun/configs/gw_lss_emcee.ini --pipeline-dir myrun
+```
+
+`--pipeline-dir` sets `PIPELINE_DIR`, which the configs use to resolve their own
+module and data paths, so keep the directory structure intact. Everything below
+refers to paths inside that copy.
 
 **Priors and starting points** — `configs/values_horndeski.ini`. Each line is
 `min  start  max`; a single value fixes the parameter. The two Horndeski
@@ -245,20 +309,23 @@ two are directly comparable.
 
 Trained weights are not distributed (they are large and tied to a specific
 hi_class build; an emulator trained on a different Boltzmann code introduces a
-measurable bias). Regenerate them (all in the same environment):
+measurable bias). Three networks go into one model directory — `emu_cl_tt`,
+`emu_logpk`, `emu_fsigma8`:
 
-    # 1. training data (hours on ~6 cores)
-    python scripts/generate_lcdm_tt.py -n 8000 --outdir training_set --seed 1 --workers 6
-    python scripts/generate_growth.py  -n 8000 --outdir training_growth --seed 3 --workers 6
+    # 1. training data (hours on ~6 cores). --smart-box keeps the full alpha
+    #    priors but restricts the standard parameters to the posterior region.
+    gwmg emu-gen -n 8000 --outdir training_set --smart-box --workers 6 --seed 1
+    gwmg emu-gen -n 2000 --outdir test_set     --smart-box --workers 6 --seed 2
+    python scripts/generate_growth.py -n 8000 --outdir training_growth --seed 3 --workers 6
 
-    # 2. train (minutes).  --mg gives the 8-parameter, MG-aware CMB emulator
-    python scripts/train_lcdm_tt.py training_set --model-dir emulators --mg --lr 0.01
-    python scripts/train_growth.py  training_growth --model-dir emulators
+    # 2. train (minutes each)
+    gwmg emu-train training_set --model-dir emulators        # CMB + matter power
+    python scripts/train_growth.py training_growth --model-dir emulators
 
-    # 3. accuracy per multipole
+    # 3. check accuracy per multipole
     gwmg emu-validate test_set --model-dir emulators --report accuracy.txt
 
-    # 4. parameter bias: hi_class derivatives, then the Fisher analysis
+    # 4. check the induced parameter bias
     python scripts/fisher_deriv_tt.py --out fisher_deriv.npz
     gwmg emu-bias --deriv fisher_deriv.npz --model-dir emulators
 

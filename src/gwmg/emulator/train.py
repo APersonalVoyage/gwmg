@@ -44,30 +44,33 @@ SPECTRA = [
     ("features_cl_tt.npy", "ell", True, 1e-6, None),    # NN (PCA+NN did worse here)
 ]
 
-# Default: high-accuracy schedule (5 stages, low learning rates, high max_epochs).
-# This is what a full overnight training run uses. For a quick first pass, pass
-# train_kw=_TRAIN_KW_FAST to train_emulators (3 stages, early stopping).
+# Default: a SINGLE stage at lr=1e-2. Two findings drive this, both learned the
+# hard way, and both are easy to get wrong:
+#   * A multi-stage schedule is worse, not better. CosmoPower saves the LAST
+#     stage's weights, and the low-learning-rate later stages here degrade rather
+#     than refine, so a multi-stage run ends up saving the worst model it made.
+#   * lr=1e-3 freezes on the initial plateau: the validation loss sticks near
+#     0.075 for the whole run, giving ~11% error and an 11-sigma parameter bias.
+#     lr=1e-2 breaks through to ~0.001. This is not specific to the CMB -- the
+#     growth emulator froze in exactly the same way despite a very different
+#     dynamic range.
 _TRAIN_KW = dict(
     validation_split=0.1,
-    learning_rates=[1e-2, 1e-3, 1e-4, 1e-5, 1e-6],
-    batch_sizes=[1024, 1024, 1024, 1024, 1024],
-    gradient_accumulation_steps=[1, 1, 1, 1, 1],
-    patience_values=[100, 100, 100, 100, 100],
-    max_epochs=[1000, 1000, 1000, 1000, 1000],
-)
-
-# Single-stage schedule. CosmoPower saves the *last* stage's end weights, and
-# empirically the low-LR later stages degrade rather than refine here (both logpk
-# and cl_tt got worse at 1e-3 and 1e-4), so a multi-stage run saves the worst
-# model. One moderate-LR stage with generous patience trains until it plateaus
-# and saves that plateau -- no later stage to overwrite it with a worse one.
-_TRAIN_KW_FAST = dict(
-    validation_split=0.1,
-    learning_rates=[1e-3],
+    learning_rates=[1e-2],
     batch_sizes=[1024],
     gradient_accumulation_steps=[1],
     patience_values=[150],
     max_epochs=[1500],
+)
+
+# Quicker, rougher pass for smoke-testing the pipeline end to end.
+_TRAIN_KW_FAST = dict(
+    validation_split=0.1,
+    learning_rates=[1e-2],
+    batch_sizes=[1024],
+    gradient_accumulation_steps=[1],
+    patience_values=[40],
+    max_epochs=[400],
 )
 
 
@@ -83,11 +86,21 @@ def _load_raw(training_dir, fname):
     return np.load(os.path.join(training_dir, fname))
 
 
-def _sanity_mask(raw, raw_abs_max):
-    """Finite AND (if raw_abs_max given) not a numerical-blowup outlier."""
+def _sanity_mask(raw, raw_abs_max, raw_min=None):
+    """Finite, and free of numerical-blowup outliers on BOTH tails.
+
+    The upper cut (raw_abs_max) catches unstable hi_class runs whose spectra are
+    finite but enormous. The lower cut (raw_min) matters just as much whenever
+    the feature is about to be log-transformed: runs that pass through zero or
+    negative values map to ~-300 under log10 and then dominate the MSE loss. In
+    one 29k training set, 41 such samples (0.1%) raised the validation loss by
+    three orders of magnitude and made the emulator look untrainable.
+    """
     mask = np.isfinite(raw).all(axis=1)
     if raw_abs_max is not None:
         mask &= np.abs(raw).max(axis=1) < raw_abs_max
+    if raw_min is not None:
+        mask &= raw.min(axis=1) > raw_min
     return mask
 
 
@@ -154,7 +167,8 @@ def train_emulators(training_dir, model_dir, spectra=SPECTRA,
             "%s shape %s != (%d, %d)" % (fname, raw.shape, n, len(modes))
 
         # Drop non-finite / numerical-blowup-outlier samples (see SPECTRA note).
-        ok = _sanity_mask(raw, raw_abs_max)
+        # log-transformed features also need the lower cut (see _sanity_mask)
+        ok = _sanity_mask(raw, raw_abs_max, raw_min=1e-20 if log10 else None)
         train_params = params
         if not ok.all():
             if verbose:

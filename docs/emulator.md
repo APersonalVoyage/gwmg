@@ -123,28 +123,40 @@ choice is too lenient:
 
 ## Reproducing it
 
-The emulator half needs CosmoPower and TensorFlow, whose dependency stack
-conflicts with `classy`'s. Use two environments: one with `hi_class` to generate
-training data, and one with CosmoSIS + CosmoPower (no `classy`) to train and run.
-See `docs/install.md`.
+Everything runs in the single environment of `docs/install.md`; `classy`,
+CosmoPower and CosmoSIS coexist provided hi_class is built against the same
+`numpy<1.25` that TensorFlow requires.
+
+Three networks are needed, all in one model directory: `emu_cl_tt` (CMB),
+`emu_logpk` (matter power) and `emu_fsigma8` (growth). The CMB and matter power
+come from the same 8-parameter training set, the growth from its own.
 
 ```bash
-# 1. training data (hi_class env). CMB uses the 8-parameter box; alpha varies.
-python scripts/generate_lcdm_tt.py -n 8000 --outdir training_set --seed 1 --workers 6
-python scripts/generate_growth.py  -n 8000 --outdir training_growth --seed 3 --workers 6
+# 1. training data. --smart-box restricts the standard parameters to the
+#    posterior region while keeping the full alpha priors (hours on ~6 cores).
+gwmg emu-gen -n 8000 --outdir training_set --smart-box --workers 6 --seed 1
+gwmg emu-gen -n 2000 --outdir test_set     --smart-box --workers 6 --seed 2
+python scripts/generate_growth.py -n 8000 --outdir training_growth --seed 3 --workers 6
 
-# 2. train (emulator env). --mg trains the 8-parameter, MG-aware CMB emulator.
-python scripts/train_lcdm_tt.py training_set --model-dir emulators --mg --lr 0.01
-python scripts/train_growth.py  training_growth --model-dir emulators_growth
+# 2. train. emu-train produces the MG-aware CMB and the matter-power emulators;
+#    the growth emulator has its own script. All into one model directory.
+gwmg emu-train training_set --model-dir emulators
+python scripts/train_growth.py training_growth --model-dir emulators
 
-# 3. component accuracy
+# 3. component accuracy, then the parameter bias
 gwmg emu-validate test_set --model-dir emulators --report accuracy.txt
-python scripts/fisher_deriv_tt.py --out fisher_deriv.npz     # hi_class env
-gwmg emu-bias --deriv fisher_deriv.npz --model-dir emulators # emulator env
+python scripts/fisher_deriv_tt.py --out fisher_deriv.npz
+gwmg emu-bias --deriv fisher_deriv.npz --model-dir emulators
 
 # 4. the accelerated inference
+export GWMG_EMU=$PWD
 gwmg run gw_lss_emulated
 ```
+
+`scripts/generate_lcdm_tt.py` and `scripts/train_lcdm_tt.py` are the standalone
+equivalents used to produce the LCDM (6-parameter) CMB emulator for the
+comparison in the Results section; `train_lcdm_tt.py --mg` trains the 8-parameter
+version. For normal use the `gwmg emu-*` commands above are the simpler path.
 
 `configs/gw_lss_emulated.ini` is identical to the exact `gw_lss_emcee.ini` except
 that the `hi_class` module is replaced by `modules/emulator_interface.py`, so the
