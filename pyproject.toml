@@ -7,12 +7,16 @@ name = "gwmg"
 version = "0.1.0"
 description = "Modified-gravity constraints from gravitational-wave standard sirens + large-scale structure, via hi_class + CosmoSIS."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Abhishek Karkola" }]
 keywords = ["cosmology", "gravitational-waves", "modified-gravity", "horndeski", "hi_class", "cosmosis", "standard-sirens"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Astronomy",
     "License :: OSI Approved :: MIT License",
 ]
