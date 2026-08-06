@@ -49,6 +49,28 @@ def test_write_report(tmp_path):
     assert "cl_te" in text and "logpk" in text and "cv" in text
 
 
+def test_sigma8_from_pk():
+    """sigma_8 integral: a power law with a known normalisation is positive and
+    scales as sqrt(amplitude)."""
+    from gwmg.emulator.predict import _sigma8_from_pk
+    k = np.logspace(-4, 0, 400)
+    pk = 2e4 * k ** 0.96 / (1 + (k / 0.02) ** 2) ** 2
+    s1 = _sigma8_from_pk(k, pk)
+    s2 = _sigma8_from_pk(k, 4 * pk)
+    assert s1 > 0
+    assert np.isclose(s2 / s1, 2.0, rtol=1e-6)
+
+
+def test_emulator_box_check():
+    """The training-box guard is pure logic, so it is testable without cosmopower."""
+    from gwmg.emulator.predict import Emulator, BOX, PARAMS8
+    inside = {k: 0.5 * (lo + hi) for k, (lo, hi) in BOX.items()}
+    assert set(inside) == set(PARAMS8)
+    assert Emulator.in_box(None, **inside)
+    outside = dict(inside, omega_m=0.9)
+    assert not Emulator.in_box(None, **outside)
+
+
 def test_parameter_bias():
     """Fisher-bias formalism, with a fake likelihood (no Planck data / cosmopower):
     a perfect emulator biases nothing; a wrong one biases something."""

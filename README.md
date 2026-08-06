@@ -68,14 +68,30 @@ See `docs/validation.md`.
 ## Emulator
 
 Running the exact pipeline is slow because every step solves the full
-cosmological equations. gwmg includes a CosmoPower neural-network emulator
-(arXiv:2106.03846) that learns the expensive physics so the same analysis runs
-in minutes. A self-consistent CMB emulator trained on hi_class biases the Planck
-parameters by at most 0.19 sigma, beating an off-the-shelf pre-trained emulator
-(0.53 sigma) by removing the code mismatch between the two. The emulator code and
-the validation methodology (why per-multipole metrics mislead, and the
-Fisher-matrix parameter-bias test that replaces them) are documented in
-`docs/emulator.md`.
+cosmological equations, so a full chain takes days. gwmg includes CosmoPower
+neural-network emulators (arXiv:2106.03846) of the expensive physics, and the
+same inference runs in about ten minutes:
+
+![emulated vs exact](docs/emulator_vs_exact.png)
+
+| | alpha_B0 | alpha_M0 | wall time |
+|---|---|---|---|
+| exact hi_class | 1.00 +/- 0.44 | 0.41 +/- 0.81 | days, 6 cores |
+| **emulated** | **1.08 +/- 0.44** | **0.32 +/- 0.82** | **10 min, 1 core** |
+
+The emulated pipeline recovers the exact Horndeski constraints to a few per cent
+in the marginal widths. Getting there needed one design choice that is easy to
+get wrong: the **CMB emulator has to include alpha_M and alpha_B as inputs**.
+Emulating the CMB in LCDM only, on the argument that modified gravity barely
+changes the temperature spectrum, degrades alpha_M by more than a factor of two
+and biases alpha_B — the small effect that argument dismisses is exactly the
+likelihood curvature that constrains alpha. The full methodology, including why
+per-multipole accuracy metrics mislead, is in `docs/emulator.md` and
+`docs/analysis_and_results.md`.
+
+To run the accelerated chain:
+
+    gwmg run gw_lss_emulated
 
 The emulator depends on CosmoPower and TensorFlow, whose stack conflicts with
 classy's, so it runs in its own environment; install its extras with
@@ -83,10 +99,11 @@ classy's, so it runs in its own environment; install its extras with
 
 ## Status
 
-Work in progress. The pipeline runs and reproduces the physics of the source
-paper, and the emulator is validated as a component. The next step is the
-end-to-end demonstration: the full accelerated inference reproducing the exact
-constraints. See the roadmap in `docs/emulator.md`.
+The pipeline runs and reproduces the physics of the source paper, and the
+emulator is validated end to end against it. Trained emulator weights are not
+committed (they are large and tied to a specific hi_class build); the generation,
+training and validation tooling to reproduce them is in `scripts/` and the
+`gwmg emu-*` commands. See `docs/emulator.md` for scope and limitations.
 
 ## License
 
