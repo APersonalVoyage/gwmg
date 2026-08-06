@@ -22,6 +22,7 @@ version.
   GW170817 + GW190521 data
 - a `gwmg` command line: `info`, `run`, `plot`, `validate`
 - corner/contour plotting with ChainConsumer
+- runnable examples in `examples/` that need no CosmoSIS
 - CosmoPower neural-network emulators of the CMB, matter power and growth, an
   `Emulator` Python API, a drop-in CosmoSIS module that replaces hi_class, and a
   three-level validation suite (`emu-gen`, `emu-train`, `emu-validate`,
@@ -80,6 +81,43 @@ standard-siren likelihood (`gwmg.gw_log_likelihood` and the `dgw` module), the
 `hi_class_interface` module that translates between hi_class and the datablock,
 the emulator and its drop-in module, the ready-made configs and data, and the CLI
 that wires the paths together.
+
+## Try it in 30 seconds
+
+The full pipeline needs CosmoSIS and hi_class, but the GW standard-siren
+likelihood is pure numpy/scipy, so a complete miniature analysis runs straight
+after `pip install`:
+
+```bash
+pip install -e .
+python examples/constrain_alpha_M.py
+```
+
+It loads the real GW170817 and GW190521 measurements, scans alpha_M0, and prints
+the posterior:
+
+```
+events (d_GW [Mpc], z, sigma_d [Mpc]):
+       40.0  0.0099      11.0
+     5300.0  0.4380    2500.0
+
+alpha_M0 = 2.53 +/- 2.26      (68% interval -0.19 to 5.05)
+GR (alpha_M0 = 0) is consistent at 68%
+```
+
+A **likelihood** is the number this prints: how well a given alpha_M0 reproduces
+the observed distances. A **chain** is what the full pipeline produces by
+proposing thousands of parameter sets and keeping them in proportion to their
+likelihood, so the density of samples *is* the posterior. This example replaces
+the chain with a simple grid scan, because there is only one parameter.
+
+The constraint above is deliberately weak: two sirens alone barely pin alpha_M
+down. Adding CMB, RSD and BAO data — which is what the full pipeline does —
+tightens it to `alpha_M0 = 0.4 +/- 0.8`.
+
+`examples/emulator_speed.py` is the other runnable example; it compares the
+emulator against exact hi_class for accuracy and speed (it needs trained
+emulators, see below).
 
 ## Install
 
