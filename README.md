@@ -50,8 +50,9 @@ Check the core works (this needs no CosmoSIS):
     gwmg validate
 
 That gives you the GW likelihood, the `gwmg` command line and plotting. To run
-the full pipeline you also need CosmoSIS 3 and hi_class; see `docs/install.md`
-for those.
+the full pipeline you also need CosmoSIS 3 and hi_class, which live in a single
+conda environment together with the emulator stack — see the Quick start below
+and `docs/install.md`.
 
 ## Quick start (from a clean machine)
 
@@ -63,14 +64,18 @@ This is the shortest path from nothing to a plot. It assumes conda/mamba
 git clone https://github.com/APersonalVoyage/gwmg.git
 cd gwmg
 
-# 2. build the compute stack (see docs/install.md for the detail)
-conda env create -f environment-hiclass.yml
-conda activate gw-hiclass
+# 2. one environment for everything (see docs/install.md for the detail)
+conda env create -f environment.yml
+conda activate gwmg
 cosmosis-build-standard-library
 source cosmosis-configure
 
+# hi_class, built against this environment's numpy
 git clone https://github.com/miguelzuma/hi_class_public.git
-cd hi_class_public && make && python setup.py build && pip install . && cd ..
+cd hi_class_public && make ; cd python
+CC=clang python setup.py build_ext --inplace      # CC=gcc on Linux
+pip install --no-build-isolation .
+cd ../..
 
 # 3. tell gwmg where things are
 export COSMOSIS_SRC_DIR=$PWD            # the parent of cosmosis-standard-library
@@ -156,7 +161,7 @@ appears in chunks while running; `gwmg plot` says so if you plot too early.
     gwmg validate                               # self-check, needs no CosmoSIS
     gwmg run hi_class_test --test               # single evaluation
     gwmg run gw_lss_emcee --mpi 8               # exact chain
-    gwmg run gw_lss_emulated                    # emulated chain (gw-emu env)
+    gwmg run gw_lss_emulated                    # emulated chain (minutes)
     gwmg plot output/chain.txt --outdir plots   # corner plots
     gwmg plot a.txt:Exact:black b.txt:Emulated:red --outdir plots   # overlay two
 
@@ -205,11 +210,11 @@ spectra are worth emulating.
 
 ### Setup
 
-The emulator needs CosmoPower and TensorFlow, which pin `numpy<1.25` and so
-cannot share an environment with a modern `classy`. Use the provided file:
+The emulator needs no separate environment: `environment.yml` already includes
+CosmoPower, and hi_class is built against the same `numpy<1.25` that TensorFlow
+requires, so `classy`, CosmoPower and CosmoSIS all coexist. Just point gwmg at
+your trained models:
 
-    conda env create -f environment-emulator.yml
-    conda activate gw-emu
     export GWMG_EMU=/path/to/where/your/emulators/live
 
 ### Using the emulators directly
@@ -240,8 +245,7 @@ two are directly comparable.
 
 Trained weights are not distributed (they are large and tied to a specific
 hi_class build; an emulator trained on a different Boltzmann code introduces a
-measurable bias). Regenerate them — steps 1 and 4 in the `gw-hiclass`
-environment, 2 and 3 in `gw-emu`:
+measurable bias). Regenerate them (all in the same environment):
 
     # 1. training data (hours on ~6 cores)
     python scripts/generate_lcdm_tt.py -n 8000 --outdir training_set --seed 1 --workers 6
@@ -254,7 +258,7 @@ environment, 2 and 3 in `gw-emu`:
     # 3. accuracy per multipole
     gwmg emu-validate test_set --model-dir emulators --report accuracy.txt
 
-    # 4/5. parameter bias (derivatives in gw-hiclass, analysis in gw-emu)
+    # 4. parameter bias: hi_class derivatives, then the Fisher analysis
     python scripts/fisher_deriv_tt.py --out fisher_deriv.npz
     gwmg emu-bias --deriv fisher_deriv.npz --model-dir emulators
 

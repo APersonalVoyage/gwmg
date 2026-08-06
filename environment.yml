@@ -1,0 +1,33 @@
+# One environment for everything: the exact pipeline (CosmoSIS + hi_class) and
+# the emulator (CosmoPower + TensorFlow).
+#
+# The single constraint that shapes this file is numpy: CosmoPower pulls in
+# TensorFlow, which pins numpy<1.25. hi_class's `classy` wrapper is a compiled
+# extension, so it must be built against that same numpy - build it INSIDE this
+# environment (see docs/install.md) and everything coexists happily.
+#
+#   conda env create -f environment.yml
+#   conda activate gwmg
+name: gwmg
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy>=1.24,<1.25      # upper bound from TensorFlow; classy is built against it
+  - scipy
+  - cython                 # to build the classy wrapper
+  - gsl                    # hi_class dependency
+  - compilers
+  - cosmosis
+  - cosmosis-build-standard-library
+  - camb                   # imported by the CosmoSIS consistency module
+  - matplotlib
+  - astropy
+  - emcee
+  - getdist
+  - pytest
+  - typing_extensions>=4.12  # chainconsumer -> pydantic needs a recent one
+  - pip
+  - pip:
+      - cosmopower         # pulls in TensorFlow
+      - -e .[plot]

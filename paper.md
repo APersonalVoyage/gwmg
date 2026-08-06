@@ -108,7 +108,7 @@ MIT license with a test suite and continuous integration. The core — the GW
 likelihood, command line and plotting — installs with `numpy` and `scipy` only;
 the heavier `CosmoSIS` and `hi_class` stack it drives is installed separately,
 and the emulator, which depends on `CosmoPower` and TensorFlow, is an optional
-extra intended for its own environment. The documentation covers installation,
+extra. The documentation covers installation,
 validation of the pipeline against the source paper, and the emulator
 methodology and its limitations.
 
