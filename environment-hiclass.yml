@@ -20,6 +20,7 @@ dependencies:
   - astropy
   - camb                   # required by the CosmoSIS consistency module
   - pytest
+  - typing_extensions>=4.12   # chainconsumer -> pydantic needs a recent one
   - pip
   - pip:
-      - -e .
+      - -e .[plot]            # includes chainconsumer, for `gwmg plot`

@@ -77,7 +77,28 @@ gwmg info
 gwmg run hi_class_test --test
 ```
 
-## 5. Trained emulator weights
+## 5. Troubleshooting
+
+**`gwmg plot` fails with `cannot import name 'Sentinel' from 'typing_extensions'`**
+— ChainConsumer pulls in pydantic, which needs a recent `typing_extensions`:
+
+```bash
+pip install -U typing_extensions
+```
+
+**`ModuleNotFoundError: No module named 'camb'`** — the CosmoSIS consistency
+module imports camb even when it is not used: `conda install -c conda-forge camb`.
+
+**hi_class Cython build fails on `ctypedef np.int_t DTYPE_i`** — that line is dead
+and invalid under numpy>=2; delete it from `python/classy.pyx` and rebuild.
+
+**Chain output looks empty while running** — CosmoSIS flushes every `nsteps`
+samples, so the file appears in chunks. Wait for the first flush.
+
+**Segfaults or hangs when generating training data** — hi_class is not
+thread-safe. Set `OMP_NUM_THREADS=1` and parallelise over processes.
+
+## 6. Trained emulator weights
 
 Trained networks are **not** distributed with the repository: they are large and
 are tied to a specific hi_class build, and an emulator trained against a

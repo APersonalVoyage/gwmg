@@ -53,12 +53,112 @@ That gives you the GW likelihood, the `gwmg` command line and plotting. To run
 the full pipeline you also need CosmoSIS 3 and hi_class; see `docs/install.md`
 for those.
 
-## Usage
+## Quick start (from a clean machine)
 
-    gwmg info
-    gwmg run hi_class_test --test
-    gwmg run gw_lss_emcee --mpi 8
-    gwmg plot output/gw_lss_horndeski.txt --outdir plots
+This is the shortest path from nothing to a plot. It assumes conda/mamba
+(Miniforge) and takes roughly an hour, most of it building hi_class.
+
+```bash
+# 1. get the code
+git clone https://github.com/APersonalVoyage/gwmg.git
+cd gwmg
+
+# 2. build the compute stack (see docs/install.md for the detail)
+conda env create -f environment-hiclass.yml
+conda activate gw-hiclass
+cosmosis-build-standard-library
+source cosmosis-configure
+
+git clone https://github.com/miguelzuma/hi_class_public.git
+cd hi_class_public && make && python setup.py build && pip install . && cd ..
+
+# 3. tell gwmg where things are
+export COSMOSIS_SRC_DIR=$PWD            # the parent of cosmosis-standard-library
+export HICLASS_DIR=$PWD/hi_class_public
+export OMP_NUM_THREADS=1                # hi_class is not thread-safe
+
+# 4. check it all resolves
+gwmg info
+gwmg run hi_class_test --test           # one evaluation, ~10 s
+
+# 5. run a short chain (minutes, not converged -- just to see it work)
+gwmg run gw_lss_emcee --mpi 4
+
+# 6. plot it
+gwmg plot output/gw_lss_horndeski.txt --outdir plots
+```
+
+Step 6 writes `plots/corner_all.png` (all eight parameters) and
+`plots/alpha_B_alpha_M.png` (the modified-gravity constraint). Both are corner
+plots: 1D histograms on the diagonal, 2D contours off it.
+
+A converged chain takes days on six cores. For a quick look, edit `samples` in
+the `[emcee]` block of the config (see below) or use the emulator, which does the
+same run in about ten minutes.
+
+## Changing the analysis
+
+Three files control what is run. Copy them out of the package
+(`python -c "import gwmg, os; print(os.path.dirname(gwmg.__file__))"` finds it)
+and pass your own with `gwmg run /path/to/your.ini`.
+
+**Priors and starting points** — `configs/values_horndeski.ini`. Each line is
+`min  start  max`; a single value fixes the parameter. The two Horndeski
+parameters are:
+
+```ini
+[horndeski_parameters]
+parameters_smg__2  = -1.   0.41   3.     ; alpha_B0, prior U(-1, 3)
+parameters_smg__3  = -1.   0.01   6.     ; alpha_M0, prior U(-1, 6)
+```
+
+To fix alpha_M at zero (a GR run), replace that line with
+`parameters_smg__3 = 0.`. To widen a prior, change the min/max. The standard
+cosmological parameters are in the `[cosmological_parameters]` block above it.
+
+**Sampler and data** — `configs/gw_lss_emcee.ini`. `walkers` and `samples` in the
+`[emcee]` block set the chain length; `modules` and `likelihoods` in `[pipeline]`
+set which datasets are used (drop `dgw` for an LSS-only run, for instance).
+
+**Gravitational-wave events** — `data/gw/ligo_data.txt`, one event per row:
+
+```
+# d_gw_obs[Mpc]  z_obs   sigma_dgw[Mpc]  sigma_z  v_rms[km/s]
+40.0            0.0099   11              0.0001   500      # GW170817
+5300            0.438    2500            0.0001   500      # GW190521
+```
+
+Add a row to include a new detection. Distances are in **Mpc**, not Gpc.
+
+## Outputs
+
+`gwmg run` writes a plain-text chain to the `output/` directory, one row per
+sample, with a header naming the columns. The last two columns are the prior and
+posterior; `cosmological_parameters--*` and `horndeski_parameters--*` are the
+sampled parameters. It is readable with `numpy.loadtxt` or `pandas`, so you can
+make your own histograms:
+
+```python
+import numpy as np, matplotlib.pyplot as plt
+d = np.loadtxt("output/gw_lss_horndeski.txt")
+names = open("output/gw_lss_horndeski.txt").readline().lstrip("#").split()
+aM = d[len(d)//2:, names.index("horndeski_parameters--parameters_smg__3")]  # drop burn-in
+plt.hist(aM, bins=40, density=True)
+print("alpha_M0 = %.2f +/- %.2f" % (aM.mean(), aM.std()))
+```
+
+CosmoSIS flushes the file periodically rather than continuously, so the chain
+appears in chunks while running; `gwmg plot` says so if you plot too early.
+
+## Usage reference
+
+    gwmg info                                   # show paths and what resolves
+    gwmg validate                               # self-check, needs no CosmoSIS
+    gwmg run hi_class_test --test               # single evaluation
+    gwmg run gw_lss_emcee --mpi 8               # exact chain
+    gwmg run gw_lss_emulated                    # emulated chain (gw-emu env)
+    gwmg plot output/chain.txt --outdir plots   # corner plots
+    gwmg plot a.txt:Exact:black b.txt:Emulated:red --outdir plots   # overlay two
 
 ## Validation
 
