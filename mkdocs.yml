@@ -28,6 +28,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Physics and method: physics.md
   - Installation: install.md
   - Emulator:
       - Overview and methodology: emulator.md

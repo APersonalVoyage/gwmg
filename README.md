@@ -10,6 +10,7 @@
 [Installation](#installation) •
 [Getting Started](#getting-started) •
 [How It Works](#how-it-works) •
+[Physics](https://apersonalvoyage.github.io/gwmg/physics/) •
 [Running the Pipeline](#running-the-pipeline) •
 [Emulator](#emulator) •
 [Trained Models](#trained-models) •
@@ -193,6 +194,11 @@ A **likelihood** is a number saying how well one parameter set reproduces the
 data. A **chain** is what the sampler produces by proposing thousands of
 parameter sets and keeping them in proportion to their likelihood, so the density
 of samples is the posterior.
+
+For what each parameter means, how the likelihood and posterior are computed, and
+how to read the chains and corner plots, see
+[Physics and method](https://apersonalvoyage.github.io/gwmg/physics/) in the
+documentation.
 
 ## Running the Pipeline
 
